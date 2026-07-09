@@ -146,6 +146,25 @@ python run.py
 > - 也可换更省的模型：`gemini-2.5-flash-lite`（免费 RPD 更高）。
 > 额度用尽时 Agent 会自动退避重试，仍失败则**用原文摘要兜底**（不会崩，但那几条无中英对照）。
 
+### DeepSeek API Key（可选，更便宜约 9 倍）
+
+本项目内置 **LLM 供应商开关**，可在 Gemini / DeepSeek 之间随时切换，**无需改代码**。
+
+1. 打开 <https://platform.deepseek.com/api_keys> → 创建 Key（DeepSeek **无免费额度**，需先小额充值，最低约 ¥10）。
+2. 在 `.env` 填入：`DEEPSEEK_API_KEY=...` 且 `LLM_PROVIDER=deepseek`（或在 `config.yaml` 设 `llm.provider: deepseek`）。
+3. 切回 Gemini 只需把 `LLM_PROVIDER` 改回 `gemini`（或删掉该行）。
+
+**为什么便宜**：本 Agent 是「输出密集型」（英文摘要 + 中文翻译 + 中文要点），
+而 `gemini-2.5-flash` 输出 **$2.50/1M**（含思考 token），DeepSeek 输出仅 **$0.28/1M**。
+
+| 供应商 / 模型 | 输入 $/1M | 输出 $/1M | 免费额度 | 全量(约50条/天)月成本 |
+| --- | --- | --- | --- | --- |
+| `gemini-2.5-flash` | 0.30 | 2.50 | 有(约20次/天) | ≈ $3~8（¥22~58） |
+| `gemini-2.5-flash-lite` | 0.10 | 0.40 | 有(RPD更高) | ≈ $0.6（¥5） |
+| `deepseek-chat`（V4-Flash） | 0.14 | 0.28 | 无，需充值 | ≈ $0.35（¥3） |
+
+> 结论：无论哪个都是「每月几块钱」级别。追求最便宜选 DeepSeek；想保留免费额度就用 `gemini-2.5-flash-lite`。
+
 ### 邮箱 SMTP（以 Gmail 为例）
 1. 开启 Google 账号 **两步验证**。
 2. 生成 **应用专用密码（App Password）**：<https://myaccount.google.com/apppasswords>。
@@ -185,6 +204,10 @@ docker compose logs -f    # 查看日志
 | `MAIL_TO` | 收件邮箱（多个用逗号分隔） |
 
 （可选 Variable：`MAIL_SUBJECT_PREFIX`。）
+
+> **想用 DeepSeek？** 再加一个 Secret `DEEPSEEK_API_KEY`，并在
+> **Settings → Secrets and variables → Actions → Variables** 里新建 Variable
+> `LLM_PROVIDER=deepseek` 即可（改回 `gemini` 或删除该 Variable 即切回）。
 
 **Step 3 — 定时如何工作**：工作流 `.github/workflows/daily-news.yml` 配了 3 条 UTC `cron`，
 经 `--respect-schedule` 守卫，只有落在 **北京 09:20 / 纽约 09:20**（含夏令时切换）窗口的那条才真正执行：
@@ -274,7 +297,7 @@ settings:
 ## 🧪 常见问题
 - **Economist/SCMP 某源抓不到？** 可能被风控。把该 feed 的 `type` 改为 `google_news` 并写 `site:域名 (关键词)` 兜底。
 - **联合早报没内容？** 它无公开 RSS 且 Google News 无法解析其标题，本项目已用 `type: html` 直抓版块页；若版块 URL 改版，更新 `config.yaml` 里对应 `url` 即可。
-- **邮件里很多条没有中英对照？** 多半是 **Gemini 免费额度（约 20 次/天）用尽**，触发兜底。解决：调小 `max_items_total`、或开结算、或换 `gemini-2.5-flash-lite`。
+- **邮件里很多条没有中英对照？** 多半是 **Gemini 免费额度（约 20 次/天）用尽**，触发兜底。解决：调小 `max_items_total`、或开结算、或换 `gemini-2.5-flash-lite`、或 **切到 DeepSeek**（`LLM_PROVIDER=deepseek`，便宜约 9 倍）。
 - **收不到邮件？** 先 `python run.py --dry-run` 看 `output/preview.html` 是否有内容；再检查 SMTP 是否用的是**应用专用密码**、端口与 SSL 是否匹配、垃圾箱是否拦截。
 - **公司网络本地测试报证书错误？** 在 `.env` 设 `VERIFY_SSL=false`（仅本地测试）或 `CA_BUNDLE=公司根证书路径`。GitHub Actions / Docker 无此问题。
 - **想更省成本？** 调低 `max_items_total`、把 `gemini.model` 换成更轻量的 flash-lite 版本。

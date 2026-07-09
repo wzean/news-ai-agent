@@ -24,10 +24,26 @@ settings:
       time: "09:20"
   schedule_tolerance_minutes: 30   # 守卫容差：GitHub cron 可能延迟，±30 分钟内视为命中
 
+# -----------------------------------------------------------------------------
+# LLM 供应商切换：gemini | deepseek
+# 可用环境变量 LLM_PROVIDER 覆盖本项（改 .env / GitHub Secrets 即可切换，无需改代码）。
+#   · gemini  ：有免费额度(约 20 次/天)，无需信用卡；读取 GEMINI_API_KEY。
+#   · deepseek：无免费额度需充值，但便宜约 9 倍；读取 DEEPSEEK_API_KEY。
+# -----------------------------------------------------------------------------
+llm:
+  provider: "gemini"
+
 gemini:
-  model: "gemini-2.5-flash"       # 免费额度可用；也可换 gemini-2.0-flash / gemini-flash-latest
+  model: "gemini-2.5-flash"       # 免费额度可用；更省钱可换 gemini-2.5-flash-lite
   temperature: 0.3
   request_interval_seconds: 1.5   # 每次调用间隔，规避限流
+  max_retries: 4
+
+deepseek:
+  model: "deepseek-chat"          # 便宜且快；deepseek-reasoner = 思考模式(更贵更慢)
+  base_url: "https://api.deepseek.com"
+  temperature: 0.3
+  request_interval_seconds: 1.0   # DeepSeek 并发高，间隔可更短
   max_retries: 4
 
 # -----------------------------------------------------------------------------

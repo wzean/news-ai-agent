@@ -15,7 +15,7 @@ from .emailer import send_email
 from .fetcher import _verify_setting, fetch_feed
 from .filters import filter_article
 from .logging_conf import setup_logging
-from .summarizer import GeminiSummarizer
+from .summarizer import build_summarizer
 
 logger = logging.getLogger("news_agent")
 
@@ -96,21 +96,43 @@ def _filter_and_dedup(cfg: dict, articles: list, store: DedupStore) -> list:
 
 
 def _summarize(cfg: dict, articles: list, use_gemini: bool) -> dict:
-    api_key = os.getenv("GEMINI_API_KEY")
+    # 供应商切换：环境变量 LLM_PROVIDER 优先，其次 config.yaml 的 llm.provider，默认 gemini。
+    provider = (
+        os.getenv("LLM_PROVIDER")
+        or (cfg.get("llm", {}) or {}).get("provider")
+        or "gemini"
+    ).strip().lower()
+    if provider == "deepseek":
+        sec = cfg.get("deepseek", {}) or {}
+        api_key = os.getenv("DEEPSEEK_API_KEY")
+        key_name = "DEEPSEEK_API_KEY"
+        default_model = "deepseek-chat"
+        default_interval = 1.0
+        base_url = str(sec.get("base_url", "https://api.deepseek.com"))
+    else:
+        provider = "gemini"
+        sec = cfg.get("gemini", {}) or {}
+        api_key = os.getenv("GEMINI_API_KEY")
+        key_name = "GEMINI_API_KEY"
+        default_model = "gemini-2.5-flash"
+        default_interval = 1.5
+        base_url = ""
+
     summarizer = None
     if use_gemini and api_key and articles:
-        g = cfg.get("gemini", {}) or {}
-        summarizer = GeminiSummarizer(
+        summarizer = build_summarizer(
+            provider=provider,
             api_key=api_key,
-            model=g.get("model", "gemini-2.0-flash"),
-            temperature=float(g.get("temperature", 0.3)),
-            interval=float(g.get("request_interval_seconds", 1.5)),
-            max_retries=int(g.get("max_retries", 4)),
+            model=str(sec.get("model", default_model)),
+            temperature=float(sec.get("temperature", 0.3)),
+            interval=float(sec.get("request_interval_seconds", default_interval)),
+            max_retries=int(sec.get("max_retries", 4)),
             verify_ssl=_verify_setting(),
+            base_url=base_url,
         )
-        logger.info("使用 Gemini 模型: %s", summarizer.model)
+        logger.info("使用 %s 模型: %s", provider, summarizer.model)
     elif use_gemini and not api_key:
-        logger.warning("未配置 GEMINI_API_KEY，跳过 AI 摘要，使用原文摘要兜底。")
+        logger.warning("未配置 %s，跳过 AI 摘要，使用原文摘要兜底。", key_name)
 
     for idx, a in enumerate(articles, 1):
         if summarizer:

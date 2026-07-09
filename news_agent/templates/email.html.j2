@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ meta.title }}</title>
+</head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,'PingFang SC','Microsoft YaHei',sans-serif;color:#1f2933;">
+  <div style="max-width:720px;margin:0 auto;padding:24px 14px;">
+
+    <!-- Header -->
+    <div style="background:#0f172a;color:#ffffff;border-radius:14px;padding:22px 26px;">
+      <div style="font-size:20px;font-weight:700;">📰 {{ meta.title }}</div>
+      <div style="font-size:13px;opacity:.82;margin-top:6px;">
+        生成时间：{{ meta.generated_at }} ｜ 共 {{ meta.total }} 条精选
+      </div>
+    </div>
+
+    <!-- 今日总结 -->
+    {% if meta.digest_zh or meta.digest_en %}
+    <div style="background:#ffffff;border-radius:14px;padding:18px 22px;margin-top:16px;border-left:4px solid #f59e0b;">
+      <div style="font-size:14px;font-weight:700;color:#b45309;margin-bottom:8px;">📌 今日总结 · Today's Overview</div>
+      {% if meta.digest_zh %}
+      <div style="font-size:13.5px;line-height:1.7;color:#334155;">{{ meta.digest_zh }}</div>
+      {% endif %}
+      {% if meta.digest_en %}
+      <div style="font-size:12.5px;line-height:1.65;color:#64748b;margin-top:6px;font-style:italic;">{{ meta.digest_en }}</div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% if meta.empty %}
+    <div style="background:#ffffff;border-radius:14px;padding:34px;margin-top:16px;text-align:center;color:#64748b;font-size:14px;">
+      今日暂无匹配关键词的新闻。<br />
+      <span style="font-size:12px;">The filters matched no articles in the selected time window today.</span>
+    </div>
+    {% else %}
+      {% for source, sections in grouped.items() %}
+      <div style="margin-top:22px;">
+        <div style="font-size:17px;font-weight:700;color:#0f172a;border-left:4px solid #2563eb;padding-left:10px;">
+          {{ source }}
+        </div>
+
+        {% for section, items in sections.items() %}
+        <div style="font-size:13px;font-weight:600;color:#2563eb;margin:14px 0 8px;">— {{ section }} —</div>
+
+          {% for a in items %}
+          <div style="background:#ffffff;border-radius:12px;padding:16px 18px;margin-bottom:12px;box-shadow:0 1px 2px rgba(15,23,42,.06);">
+            <a href="{{ a.url }}" style="font-size:15px;font-weight:700;color:#0f172a;text-decoration:none;line-height:1.4;">
+              {{ a.title }}
+            </a>
+            {% if a.title_zh %}
+            <div style="font-size:13px;color:#475569;margin-top:3px;">🔖 {{ a.title_zh }}</div>
+            {% endif %}
+
+            {% if a.english_summary %}
+            <div style="font-size:13.5px;line-height:1.65;color:#334155;margin-top:9px;">
+              <span style="display:inline-block;font-size:10px;color:#2563eb;font-weight:700;vertical-align:middle;">EN</span>
+              {{ a.english_summary }}
+            </div>
+            {% endif %}
+            {% if a.summary_zh %}
+            <div style="font-size:13.5px;line-height:1.7;color:#334155;margin-top:5px;">
+              <span style="display:inline-block;font-size:10px;color:#dc2626;font-weight:700;vertical-align:middle;">中</span>
+              {{ a.summary_zh }}
+            </div>
+            {% endif %}
+
+            {% if a.key_points_zh %}
+            <div style="background:#f8fafc;border-radius:8px;padding:9px 12px;margin-top:9px;">
+              <div style="font-size:12px;color:#64748b;font-weight:600;margin-bottom:4px;">中文要点</div>
+              <ul style="margin:0;padding-left:18px;">
+                {% for p in a.key_points_zh %}
+                <li style="font-size:13px;line-height:1.6;color:#334155;">{{ p }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+            {% endif %}
+
+            {% if a.keywords %}
+            <div style="margin-top:10px;">
+              {% for kw in a.keywords %}
+              <span style="display:inline-block;background:#eef2ff;color:#4338ca;font-size:11px;padding:2px 8px;border-radius:999px;margin:2px 4px 2px 0;">{{ kw }}</span>
+              {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if a.published_display %}
+            <div style="font-size:11px;color:#94a3b8;margin-top:9px;">{{ a.published_display }}</div>
+            {% endif %}
+          </div>
+          {% endfor %}
+
+        {% endfor %}
+      </div>
+      {% endfor %}
+    {% endif %}
+
+    <div style="text-align:center;color:#94a3b8;font-size:11px;margin-top:26px;line-height:1.6;">
+      由 News AI Agent 自动生成 · Powered by Google Gemini<br />
+      如需增减媒体或关键词，请修改仓库中的 <code>config.yaml</code>
+    </div>
+  </div>
+</body>
+</html>

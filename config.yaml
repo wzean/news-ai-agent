@@ -1,0 +1,205 @@
+# =============================================================================
+# News AI Agent 配置文件
+# 新增媒体 / 增减关键词，只需修改本文件，无需改动任何代码。
+# =============================================================================
+
+settings:
+  lookback_hours: 36          # 仅保留最近 N 小时内发布的新闻
+  max_items_per_feed: 15      # 每个板块（feed）最多保留多少条
+  # 全局最多处理多少条 = 每次 Gemini 调用数（+1 今日总结）。
+  # ⚠️ Gemini 免费额度约 20 次/天：一天两推时，建议 8（8+1=9，×2=18 < 20）。
+  # 开启结算(billing)后可调大到 30~40（flash 极便宜，约 $1~2/月）。
+  max_items_total: 8
+  dedup_store: "data/seen.json"
+  dedup_retention_days: 7     # 去重记录保留天数（超过则清理）
+  send_empty_notification: true   # 无匹配新闻时是否仍发送“空白通知”邮件
+  timezone: "Asia/Singapore"
+
+  # 每日定时计划：Docker 常驻(--schedule) 与 GitHub Actions 守卫(--respect-schedule) 共用。
+  # 去重库保证两次推送内容不重复（第二次只发第一次之后的新增新闻）。
+  schedules:
+    - tz: "Asia/Shanghai"       # 北京时间 09:20
+      time: "09:20"
+    - tz: "America/New_York"    # 纽约时间 09:20（自动处理夏令时 DST）
+      time: "09:20"
+  schedule_tolerance_minutes: 30   # 守卫容差：GitHub cron 可能延迟，±30 分钟内视为命中
+
+gemini:
+  model: "gemini-2.5-flash"       # 免费额度可用；也可换 gemini-2.0-flash / gemini-flash-latest
+  temperature: 0.3
+  request_interval_seconds: 1.5   # 每次调用间隔，规避限流
+  max_retries: 4
+
+# -----------------------------------------------------------------------------
+# 关键词过滤
+# -----------------------------------------------------------------------------
+keywords:
+  # 正向关键词池：命中任一即保留。按主题分组，便于维护。
+  # 英文/数字词自动按“单词边界”匹配，中文按子串匹配。
+  include:
+    科技/半导体:
+      - technology
+      - tech
+      - AI
+      - artificial intelligence
+      - semiconductor
+      - chip
+      - GPU
+      - software
+      - cloud
+      - data center
+      - 芯片
+      - 半导体
+      - 人工智能
+      - 科技
+      - 台积电
+      - 英伟达
+    金融:
+      - finance
+      - bank
+      - banking
+      - interest rate
+      - bond
+      - equity
+      - IPO
+      - fund
+      - 金融
+      - 银行
+      - 利率
+      - 央行
+      - 美联储
+    财经/美股/宏观:
+      - economy
+      - economic
+      - inflation
+      - GDP
+      - trade
+      - market
+      - stocks
+      - Nasdaq
+      - Fed
+      - 美股
+      - 宏观
+      - 通胀
+      - 经济
+      - 股市
+      - 贸易
+      - 出口
+    政治/地缘:
+      - politics
+      - policy
+      - election
+      - sanction
+      - tariff
+      - geopolitics
+      - 地缘
+      - 政治
+      - 制裁
+      - 关税
+      - 台海
+      - 外交
+
+  # 黑名单：命中任一即丢弃（过滤广告/娱乐/体育等无关内容）。
+  exclude:
+    - advertisement
+    - sponsored
+    - horoscope
+    - celebrity
+    - lifestyle
+    - recipe
+    - football
+    - soccer
+    - fashion
+    - entertainment
+
+# -----------------------------------------------------------------------------
+# 媒体与板块
+# type: rss          -> 直接抓取该 RSS 地址
+# type: google_news  -> 用 Google News 站内检索兜底（适合无稳定 RSS 的媒体）
+# 新增媒体：在下方 sources 追加一个条目即可。
+# -----------------------------------------------------------------------------
+sources:
+  - name: "CNBC"
+    enabled: true
+    feeds:
+      - section: "Technology"
+        type: "rss"
+        url: "https://www.cnbc.com/id/19854910/device/rss/rss.html"
+      - section: "Economy"
+        type: "rss"
+        url: "https://www.cnbc.com/id/20910258/device/rss/rss.html"
+      - section: "Finance"
+        type: "rss"
+        url: "https://www.cnbc.com/id/10000664/device/rss/rss.html"
+
+  - name: "The Economist"
+    enabled: true
+    feeds:
+      - section: "Finance & Economics"
+        type: "rss"
+        url: "https://www.economist.com/finance-and-economics/rss.xml"
+      - section: "Business"
+        type: "rss"
+        url: "https://www.economist.com/business/rss.xml"
+      - section: "Science & Technology"
+        type: "rss"
+        url: "https://www.economist.com/science-and-technology/rss.xml"
+
+  - name: "SCMP"
+    enabled: true
+    feeds:
+      - section: "Business"
+        type: "rss"
+        url: "https://www.scmp.com/rss/92/feed"
+      - section: "Tech"
+        type: "rss"
+        url: "https://www.scmp.com/rss/36/feed"
+      - section: "China"
+        type: "rss"
+        url: "https://www.scmp.com/rss/4/feed"
+
+  - name: "CNA"
+    enabled: true
+    feeds:
+      # CNA 官方 RSS 结构时有调整，默认用 Google News 站内检索更稳定；
+      # 如需直连可改为： type: rss, url: https://www.channelnewsasia.com/api/v1/rss-outbound-feed?_format=xml
+      - section: "Business"
+        type: "google_news"
+        query: "site:channelnewsasia.com (business OR economy OR markets OR finance)"
+        lang: "en-SG"
+        country: "SG"
+      - section: "Asia"
+        type: "google_news"
+        query: "site:channelnewsasia.com (asia OR singapore OR china OR politics)"
+        lang: "en-SG"
+        country: "SG"
+
+  - name: "The Times"
+    enabled: true
+    feeds:
+      # 泰晤士报为付费墙且官方 RSS 受限，使用 Google News 站内检索兜底。
+      - section: "Business"
+        type: "google_news"
+        query: "site:thetimes.co.uk (business OR economy OR markets OR finance)"
+        lang: "en-GB"
+        country: "GB"
+      - section: "Politics"
+        type: "google_news"
+        query: "site:thetimes.co.uk (politics OR policy OR geopolitics)"
+        lang: "en-GB"
+        country: "GB"
+
+  - name: "联合早报"
+    enabled: true
+    feeds:
+      # 联合早报（SPH）无公开 RSS，且 Google News 无法解析其标题，
+      # 故直接抓取版块页 HTML，按文章链接正则提取标题（中文标题，交由 Gemini 翻译/摘要）。
+      - section: "财经"
+        type: "html"
+        url: "https://www.zaobao.com.sg/realtime/finance"
+      - section: "中国"
+        type: "html"
+        url: "https://www.zaobao.com.sg/realtime/china"
+      - section: "国际"
+        type: "html"
+        url: "https://www.zaobao.com.sg/realtime/world"

@@ -1,0 +1,14 @@
+services:
+  news-agent:
+    build: .
+    image: news-ai-agent:latest
+    container_name: news-agent
+    env_file: .env
+    environment:
+      RUN_MODE: schedule       # 常驻，按 config.yaml 的 schedules 每日执行（北京 & 纽约 09:20）
+      RUN_ON_START: "false"    # 如需容器启动即先跑一次验证，改为 "true"
+      TZ: Asia/Singapore
+    volumes:
+      - ./data:/app/data                       # 持久化去重记录
+      - ./config.yaml:/app/config.yaml:ro      # 改配置即时生效，无需重建镜像
+    restart: unless-stopped

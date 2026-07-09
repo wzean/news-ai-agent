@@ -6,10 +6,10 @@
 settings:
   lookback_hours: 36          # 仅保留最近 N 小时内发布的新闻
   max_items_per_feed: 15      # 每个板块（feed）最多保留多少条
-  # 全局最多处理多少条 = 每次 Gemini 调用数（+1 今日总结）。
-  # ⚠️ Gemini 免费额度约 20 次/天：一天两推时，建议 8（8+1=9，×2=18 < 20）。
-  # 开启结算(billing)后可调大到 30~40（flash 极便宜，约 $1~2/月）。
-  max_items_total: 8
+  # 全局最多处理多少条 = 每次 LLM 调用数（+1 今日总结）。
+  # · DeepSeek：无 RPD 限制、极便宜（全量约 ¥3/月），可放心设 30~60。
+  # · Gemini 免费层：约 20 次/天，一天两推时建议设 8（8+1=9，×2=18 < 20）。
+  max_items_total: 30
   dedup_store: "data/seen.json"
   dedup_retention_days: 7     # 去重记录保留天数（超过则清理）
   send_empty_notification: true   # 无匹配新闻时是否仍发送“空白通知”邮件

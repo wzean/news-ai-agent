@@ -136,7 +136,7 @@ def _summarize(cfg: dict, articles: list, use_gemini: bool) -> dict:
 
     for idx, a in enumerate(articles, 1):
         if summarizer:
-            logger.info("Gemini 处理 %d/%d: %s", idx, len(articles), a.title[:60])
+            logger.info("%s 处理 %d/%d: %s", provider, idx, len(articles), a.title[:60])
             summarizer.summarize(a)
         else:
             a.english_summary = a.raw_summary[:280]

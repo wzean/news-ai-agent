@@ -12,7 +12,7 @@ settings:
   max_items_total: 30
   dedup_store: "data/seen.json"
   dedup_retention_days: 7     # 去重记录保留天数（超过则清理）
-  send_empty_notification: true   # 无匹配新闻时是否仍发送“空白通知”邮件
+  send_empty_notification: false  # 无匹配新闻时不发“空白通知”。配合外部准点触发：外部发主邮件后，GitHub 兜底那次因无新增而静默
   timezone: "Asia/Singapore"
 
   # 每日定时计划：Docker 常驻(--schedule) 与 GitHub Actions 守卫(--respect-schedule) 共用。

@@ -57,6 +57,31 @@ def matches_schedule_now(cfg: dict, tolerance_minutes: int | None = None,
     return False, ""
 
 
+def should_run_cron(cron: str, now: datetime | None = None) -> tuple[bool, str]:
+    """基于「触发的计划 cron 标识 + 当前夏令时」判断是否执行——抗 GitHub 延迟。
+
+    与 matches_schedule_now 不同：本函数**不看"现在几点"**，因此 GitHub Actions
+    把定时任务延迟数小时也不会被误跳过。它只依据 `github.event.schedule`
+    传入的 cron 表达式，配合纽约当前 DST 状态选出正确的那条纽约 cron。
+
+    约定（与 .github/workflows/daily-news.yml 的三条 cron 对应）：
+      - "20 1 * * *"  → 北京 09:20，全年每天执行
+      - "20 13 * * *" → 纽约 09:20（EDT 夏令时），仅夏令时执行
+      - "20 14 * * *" → 纽约 09:20（EST 冬令时），仅冬令时执行
+    未知 cron 一律保守执行（宁可多发，不可漏发）。
+    """
+    now_utc = now or datetime.now(timezone.utc)
+    is_ny_dst = bool(now_utc.astimezone(ZoneInfo("America/New_York")).dst())
+    c = (cron or "").strip()
+    if c == "20 1 * * *":
+        return True, "Asia/Shanghai 09:20"
+    if c == "20 13 * * *":
+        return is_ny_dst, "America/New_York 09:20 (EDT)"
+    if c == "20 14 * * *":
+        return (not is_ny_dst), "America/New_York 09:20 (EST)"
+    return True, f"unknown cron '{c}'（保守执行）"
+
+
 def run_scheduler(cfg: dict, job, run_on_start: bool = False) -> None:
     """常驻循环：到点触发 job（每个时区每天仅一次）。job 为无参可调用对象。"""
     scheds = _parse(get_schedules(cfg))

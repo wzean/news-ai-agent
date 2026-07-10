@@ -17,7 +17,7 @@ import os
 from news_agent.config import load_config
 from news_agent.logging_conf import setup_logging
 from news_agent.main import run_once
-from news_agent.scheduler import matches_schedule_now, run_scheduler
+from news_agent.scheduler import matches_schedule_now, run_scheduler, should_run_cron
 
 
 def _safe_run(args) -> None:
@@ -58,11 +58,21 @@ def main() -> None:
     # 2) 守卫模式（GitHub Actions 多条 UTC cron，只在正确窗口执行）
     if args.respect_schedule:
         cfg = load_config(args.config)
-        ok, label = matches_schedule_now(cfg)
-        if not ok:
-            log.info("[respect-schedule] 当前不在任何计划时间窗内，跳过本次执行。")
-            return
-        log.info("[respect-schedule] 命中计划窗口：%s，开始执行。", label)
+        # 优先用 GitHub 传入的「计划 cron 标识」判定——抗定时延迟，不会因迟到被误跳过。
+        scheduled_cron = os.getenv("SCHEDULED_CRON", "").strip()
+        if scheduled_cron:
+            ok, label = should_run_cron(scheduled_cron)
+            if not ok:
+                log.info("[respect-schedule] cron '%s' 当前 DST 下不执行（另一条负责），跳过。", scheduled_cron)
+                return
+            log.info("[respect-schedule] 命中计划 cron '%s' → %s，开始执行。", scheduled_cron, label)
+        else:
+            # 本地/无 cron 标识时回退到「实时时间窗」判断（Docker 手动模拟用）。
+            ok, label = matches_schedule_now(cfg)
+            if not ok:
+                log.info("[respect-schedule] 当前不在任何计划时间窗内，跳过本次执行。")
+                return
+            log.info("[respect-schedule] 命中计划窗口：%s，开始执行。", label)
         _safe_run(args)
         return
 

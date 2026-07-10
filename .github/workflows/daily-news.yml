@@ -56,9 +56,11 @@ jobs:
           restore-keys: |
             dedup-
 
-      # 定时触发：经守卫，只有落在北京/纽约 09:20 窗口的那条 cron 才真正执行
+      # 定时触发：经守卫，按「触发的 cron 标识 + 当前夏令时」决定执行（抗 GitHub 定时延迟）
       - name: Run (scheduled, guarded)
         if: github.event_name == 'schedule'
+        env:
+          SCHEDULED_CRON: ${{ github.event.schedule }}
         run: python run.py --respect-schedule
 
       # 手动触发：直接执行，方便随时验证

@@ -18,9 +18,7 @@ settings:
   # 每日定时计划：Docker 常驻(--schedule) 与 GitHub Actions 守卫(--respect-schedule) 共用。
   # 去重库保证两次推送内容不重复（第二次只发第一次之后的新增新闻）。
   schedules:
-    - tz: "Asia/Shanghai"       # 北京时间 09:20
-      time: "09:20"
-    - tz: "America/New_York"    # 纽约时间 09:20（自动处理夏令时 DST）
+    - tz: "Asia/Shanghai"       # 北京时间 09:20（每天仅此一封）
       time: "09:20"
   schedule_tolerance_minutes: 30   # 守卫容差：GitHub cron 可能延迟，±30 分钟内视为命中
 

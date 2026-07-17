@@ -220,6 +220,14 @@ def run_once(config_path: str = "config.yaml", dry_run: bool = False,
         digest = _summarize(cfg, deduped, use_gemini)
         _send(cfg, deduped, dry_run, digest)
 
+        # 同步到 Notion 个人知识库（当月一篇，每日追加一节）。dry-run 不写。
+        if not dry_run:
+            try:
+                from .notion_sync import sync_daily
+                sync_daily(deduped, (digest or {}).get("digest_zh", ""))
+            except Exception:  # noqa: BLE001
+                logger.exception("Notion 同步异常（不影响主流程）")
+
         if not dry_run:
             for a in deduped:
                 store.mark(a.uid)
